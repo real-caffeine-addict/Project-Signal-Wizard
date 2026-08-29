@@ -2,6 +2,7 @@ package com.psw.incidents;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.psw.common.dto.IncidentDto;
+import com.psw.common.enums.Services;
 import com.psw.incidents.controller.IncidentController;
 import com.psw.incidents.repository.IncidentsRepository;
 import org.flywaydb.core.Flyway;
@@ -18,14 +19,12 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class IncidentPersistenceIntegrationTests {
@@ -114,7 +113,7 @@ class IncidentPersistenceIntegrationTests {
     @Test
     void constraintFailureDoesNotCreatePartialRow() {
         IncidentDto invalid = new IncidentDto(
-                null, "request-invalid", Instant.now(), "MAJOR", "gateway", "invalid", "{}");
+                null, "request-invalid", Instant.now(), "MAJOR", Services.GATEWAY.name(), "invalid", "{}");
 
         assertThatThrownBy(() -> repository.insertIncident(invalid))
                 .isInstanceOf(DataIntegrityViolationException.class);
@@ -166,7 +165,7 @@ class IncidentPersistenceIntegrationTests {
         String additionalData = "דיאגנוסטיקה\n" + "x".repeat(60_000);
         IncidentDto dto = new IncidentDto(
                 "log-large", "request-large", Instant.parse("2026-08-11T12:00:00Z"),
-                "MAJOR", "gateway", "large diagnostic payload", additionalData);
+                "MAJOR", Services.GATEWAY.name(), "large diagnostic payload", additionalData);
 
         Long id = repository.insertIncident(dto);
 
@@ -177,7 +176,7 @@ class IncidentPersistenceIntegrationTests {
 
     private IncidentDto incident(String logId, String requestId, Instant timestamp) {
         return new IncidentDto(
-                logId, requestId, timestamp, "CRITICAL", "gateway",
+                logId, requestId, timestamp, "CRITICAL", Services.GATEWAY.name(),
                 "Downstream service is unavailable", "{\"service\":\"projects\"}");
     }
 }

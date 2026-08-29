@@ -2,9 +2,9 @@ package com.psw.gateway.utility;
 
 import com.psw.common.dto.IncidentDto;
 import com.psw.common.enums.AlertSeverity;
+import com.psw.common.enums.Services;
 import com.psw.gateway.model.AlertRecord;
 import com.psw.gateway.client.IncidentClient;
-import feign.FeignException;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -48,7 +48,7 @@ public class IncidentHandler {
                     null,
                     Instant.now(),
                     AlertSeverity.CRITICAL,
-                    "Incident service",
+                    Services.LOGGER,
                     "Failed to log incident for" + alert.description(),
                     parser.exceptionParser(e)
             );
@@ -62,7 +62,7 @@ public class IncidentHandler {
                 alert.requestId().toString(),
                 alert.timestamp(),
                 alert.severity().name(),
-                alert.sourceComponent(),
+                alert.sourceComponent().name(),
                 alert.description(),
                 alert.debuggingData().toString()
         );

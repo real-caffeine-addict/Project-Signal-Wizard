@@ -4,6 +4,7 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import com.psw.common.enums.AlertSeverity;
+import com.psw.common.enums.Services;
 import com.psw.gateway.model.AlertRecord;
 import com.psw.gateway.model.RequestContext;
 import com.psw.gateway.utility.ContextInitUtil;
@@ -19,9 +20,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
-import java.io.IOException;
 import java.time.Instant;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.CountDownLatch;
@@ -95,7 +96,7 @@ class ContextInitFilterIntegrationTests {
             requestId.set(context.getRequestId());
             context.getAlerts().add(new AlertRecord(
                     UUID.randomUUID(), context.getRequestId(), null, Instant.now(),
-                    AlertSeverity.INFO, "test", "diagnostic", Map.of()));
+                    AlertSeverity.INFO, Services.LOGGER, "diagnostic", Map.of()));
         });
 
         assertThat(requestLogs.list).hasSize(1);
@@ -114,7 +115,7 @@ class ContextInitFilterIntegrationTests {
         });
 
         RequestContext context = (RequestContext) request.getAttribute("context");
-        assertThat(context.getStatus()).isEqualTo(500);
+        assertThat(Objects.requireNonNull(context).getStatus()).isEqualTo(500);
         assertThat(response.getStatus()).isEqualTo(500);
         assertThat(response.getContentAsString()).isEqualTo("Internal server error");
         assertThat(requestLogs.list).hasSize(1);

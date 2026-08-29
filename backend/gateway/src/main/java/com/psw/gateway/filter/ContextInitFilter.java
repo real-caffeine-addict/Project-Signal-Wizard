@@ -1,5 +1,6 @@
 package com.psw.gateway.filter;
 
+import com.psw.common.enums.Services;
 import com.psw.gateway.model.AlertRecord;
 import com.psw.gateway.model.RequestContext;
 import com.psw.common.enums.AlertSeverity;
@@ -47,10 +48,9 @@ public class ContextInitFilter extends OncePerRequestFilter {
                 .build();
 
         request.setAttribute("context", ctx);
-
-        util.ipResolver(request, ctx);
-        util.headerResolver(request, ctx);
         try {
+            util.ipResolver(request, ctx);
+            util.headerResolver(request, ctx);
             filterChain.doFilter(request, response);
         } catch (Exception e) {
             ctx.setStatus(500);
@@ -61,7 +61,7 @@ public class ContextInitFilter extends OncePerRequestFilter {
                     null,
                     Instant.now(),
                     AlertSeverity.MAJOR,
-                    "ContextInitFilter",
+                    Services.GATEWAY,
                     "Unknown exception thrown",
                     parser.exceptionParser(e)
             ));

@@ -1,6 +1,7 @@
 package com.psw.gateway.model;
 
 import com.psw.common.enums.AlertSeverity;
+import com.psw.common.enums.Services;
 
 import java.time.Instant;
 import java.util.Map;
@@ -12,7 +13,7 @@ public record AlertRecord(
         Long incidentId,
         Instant timestamp,
         AlertSeverity severity,
-        String sourceComponent,
+        Services sourceComponent,
         String description,
         Map<String, Object> debuggingData
 ) {}
