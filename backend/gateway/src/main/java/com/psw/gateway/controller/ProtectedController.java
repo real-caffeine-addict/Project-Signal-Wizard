@@ -23,10 +23,12 @@ public class ProtectedController {
         ctx.setStatus(201);
     }
 
-    @GetMapping("/document/{id}")
+    @GetMapping("/documents/{id}")
     public void getDocument (@PathVariable ("id") int id,
                              HttpServletRequest request){
         RequestContext ctx = ctxHandler(request);
+        ctx.setResponseBody(documentsClient.getDocumentById(id));
+        ctx.setStatus(200);
     }
 
     @GetMapping("/health-check")
