@@ -17,9 +17,12 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpMethod;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
+import java.io.IOException;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
@@ -30,6 +33,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 class ContextInitFilterIntegrationTests {
     private final IncidentHandler incidentHandler = mock(IncidentHandler.class);
@@ -122,6 +126,29 @@ class ContextInitFilterIntegrationTests {
         assertThat(alertLogs.list).hasSize(1);
         assertThat(structuredArgument(requestLogs.list.getFirst())).contains(context.getRequestId().toString());
         assertThat(structuredArgument(alertLogs.list.getFirst())).contains(context.getRequestId().toString());
+    }
+
+    @Test
+    void unknownRoute404WithNoAlert () throws ServletException, IOException {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/unknown-route");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter.doFilter(request, response, (req, res) -> {
+            throw new NoResourceFoundException(
+                    HttpMethod.GET,
+                    "/unknown-route",
+                    "/unknown-route"
+            );
+        });
+
+        RequestContext context = (RequestContext) request.getAttribute("context");
+        assertThat(Objects.requireNonNull(context).getStatus()).isEqualTo(404);
+        assertThat(response.getStatus()).isEqualTo(404);
+        assertThat(response.getContentAsString()).isEqualTo("Not found");
+        assertThat(requestLogs.list).hasSize(1);
+        assertThat(structuredArgument(requestLogs.list.getFirst())).contains(context.getRequestId().toString());
+        assertThat(alertLogs.list).isEmpty();
+        verifyNoInteractions(incidentHandler);
     }
 
     @Test

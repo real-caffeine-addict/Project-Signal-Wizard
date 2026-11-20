@@ -16,6 +16,7 @@ import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -52,6 +53,9 @@ public class ContextInitFilter extends OncePerRequestFilter {
             util.ipResolver(request, ctx);
             util.headerResolver(request, ctx);
             filterChain.doFilter(request, response);
+        } catch (NoResourceFoundException e) {
+            ctx.setStatus(404);
+            ctx.setResponseBody("Not found");
         } catch (Exception e) {
             ctx.setStatus(500);
             ctx.setResponseBody("Internal server error");
