@@ -6,6 +6,7 @@ import ch.qos.logback.core.read.ListAppender;
 import com.psw.common.enums.AlertSeverity;
 import com.psw.common.enums.Services;
 import com.psw.gateway.model.AlertRecord;
+import com.psw.gateway.client.IncidentClient;
 import com.psw.gateway.model.RequestContext;
 import com.psw.gateway.utility.ContextInitUtil;
 import com.psw.gateway.utility.ExceptionParserUtil;
@@ -34,6 +35,8 @@ import java.util.concurrent.TimeUnit;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 class ContextInitFilterIntegrationTests {
     private final IncidentHandler incidentHandler = mock(IncidentHandler.class);
@@ -42,6 +45,32 @@ class ContextInitFilterIntegrationTests {
             new ContextInitUtil(), gwLogger, new ExceptionParserUtil());
     private final ListAppender<ILoggingEvent> requestLogs = new ListAppender<>();
     private final ListAppender<ILoggingEvent> alertLogs = new ListAppender<>();
+
+    @Test
+    void explicitContextStatusWinsAndPersistedIncidentIdIsReturnedInHeader() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/failure");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        IncidentClient client = mock(IncidentClient.class);
+        when(client.logIncident(any())).thenReturn(42L);
+        ExceptionParserUtil parser = new ExceptionParserUtil();
+        GwLogger logger = new GwLogger(new IncidentHandler(parser, client), parser);
+        ContextInitFilter incidentFilter = new ContextInitFilter(new ContextInitUtil(), logger, parser);
+
+        incidentFilter.doFilter(request, response, (req, res) -> {
+            RequestContext context = (RequestContext) req.getAttribute("context");
+            context.setStatus(503);
+            context.setResponseBody("temporarily unavailable");
+            ((HttpServletResponse) res).setStatus(202);
+            context.getAlerts().add(new AlertRecord(UUID.randomUUID(), context.getRequestId(), null,
+                    Instant.now(), AlertSeverity.MAJOR, "test", "Downstream service is unavailable", Map.of()));
+        });
+
+        assertThat(response.getStatus()).isEqualTo(503);
+        assertThat(response.getContentAsString()).isEqualTo("temporarily unavailable");
+        assertThat(response.getHeader("X-log-ID")).isEqualTo("42");
+        assertThat(requestLogs.list).hasSize(1);
+        assertThat(alertLogs.list).hasSize(1);
+    }
 
     @BeforeEach
     void captureTechnicalLogs() {
@@ -167,6 +196,9 @@ class ContextInitFilterIntegrationTests {
         assertThat(response.getStatus()).isEqualTo(201);
         assertThat(response.getContentAsString()).isEqualTo("already sent");
         assertThat(requestLogs.list).hasSize(1);
+        assertThat(alertLogs.list).anySatisfy(event -> assertThat(structuredArgument(event))
+                .contains("Response ownership violation detected")
+                .contains(((RequestContext) request.getAttribute("context")).getRequestId().toString()));
     }
 
     @Test
@@ -180,6 +212,7 @@ class ContextInitFilterIntegrationTests {
         });
 
         assertThat(response.getContentAsString()).isEqualTo("{}");
+        assertThat(response.getHeader("X-log-ID")).isNull();
         assertThat(requestLogs.list).hasSize(1);
     }
 
