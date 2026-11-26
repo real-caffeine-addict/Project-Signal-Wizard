@@ -28,8 +28,10 @@ test('reads JSON documents according to response content type', async () => {
   expect(fetch).toHaveBeenCalledExactlyOnceWith('http://localhost:8083/documents/41')
 })
 
-test('returns a text document response when no JSON content type is provided', async () => {
-  fetch.mockResolvedValue(new Response('plain response'))
+test('returns a text document response when the content type header is missing', async () => {
+  const response = new Response('plain response')
+  response.headers.delete('Content-Type')
+  fetch.mockResolvedValue(response)
 
   await expect(readDocument(41)).resolves.toBe('plain response')
 })

@@ -52,10 +52,10 @@ def run():
             ]))
             config.chmod(0o600)
             environment = os.environ | {"PSW_CONFIG_FILE": str(config)}
-            goals = ["test"]
+            goals = ["clean", "test"]
             if options.coverage:
                 jacoco = "org.jacoco:jacoco-maven-plugin:0.8.14:"
-                goals = [jacoco + "prepare-agent", "test", jacoco + "report"]
+                goals = ["clean", jacoco + "prepare-agent", "test", jacoco + "report"]
             return subprocess.run([
                 "mvn", "-B", "-ntp", "-Dpsw.test.db.url=" + url, "-Dpsw.test.db.user=psw_test",
                 "-Dpsw.test.db.password=" + password, *maven_args, *goals,

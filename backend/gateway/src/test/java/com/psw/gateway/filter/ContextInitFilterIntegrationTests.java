@@ -202,11 +202,12 @@ class ContextInitFilterIntegrationTests {
     }
 
     @Test
-    void doesNotAppendFallbackBodyToDownstreamOwnedResponse() throws Exception {
+    void emptyContextBodyUsesFallbackWithoutAppendingDownstreamBody() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/body");
         MockHttpServletResponse response = new MockHttpServletResponse();
 
         filter.doFilter(request, response, (req, res) -> {
+            ((RequestContext) req.getAttribute("context")).setResponseBody("");
             res.setContentType("application/json");
             res.getWriter().write("{\"value\":1}");
         });

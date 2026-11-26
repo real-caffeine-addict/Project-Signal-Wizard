@@ -32,6 +32,32 @@ class GwLoggerTests {
     private final ListAppender<ILoggingEvent> requestAppender = new ListAppender<>();
     private final ListAppender<ILoggingEvent> alertAppender = new ListAppender<>();
 
+    @Test
+    void syntheticIncidentFailureStillLogsOriginalAlertsAndReturnsFirstAvailableId() {
+        AlertRecord first = alert(AlertSeverity.MAJOR, "first");
+        AlertRecord second = new AlertRecord(UUID.randomUUID(), first.requestId(), null,
+                Instant.now(), AlertSeverity.CRITICAL, "test", "second", null);
+        AlertRecord firstPersisted = new AlertRecord(first.logId(), first.requestId(), 91L,
+                first.timestamp(), first.severity(), first.sourceComponent(), first.description(), null);
+        AlertRecord secondPersisted = new AlertRecord(second.logId(), second.requestId(), 92L,
+                second.timestamp(), second.severity(), second.sourceComponent(), second.description(), null);
+        when(incidentHandler.createIncidentIfRequired(org.mockito.ArgumentMatchers.argThat(
+                item -> item.description().equals("Request had more than one MAJOR or CRITICAL alert"))))
+                .thenThrow(new IllegalStateException("synthetic incident failed"));
+        when(incidentHandler.createIncidentIfRequired(first)).thenReturn(firstPersisted);
+        when(incidentHandler.createIncidentIfRequired(second)).thenReturn(secondPersisted);
+
+        Long result = logger.logRequest(context(List.of(first, second)));
+
+        assertThat(result).isEqualTo(91L);
+        assertThat(requestAppender.list).hasSize(1);
+        assertThat(alertAppender.list).hasSize(3);
+        assertThat(alertAppender.list.getFirst().getArgumentArray()[0].toString())
+                .contains("Failed to log incident", first.requestId().toString());
+        verify(incidentHandler).createIncidentIfRequired(first);
+        verify(incidentHandler).createIncidentIfRequired(second);
+    }
+
     @BeforeEach
     void attachAppenders() {
         requestAppender.start();

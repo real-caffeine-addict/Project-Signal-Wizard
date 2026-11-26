@@ -9,7 +9,7 @@ python3 test.py
 
 The runner creates a disposable MariaDB 11.4 container (matching dev Compose),
 binds an available loopback port, supplies temporary test configuration and runs
-the Maven reactor. It stops the container on exit; database files live in tmpfs.
+a clean Maven reactor build. It stops the container on exit; database files live in tmpfs.
 It uses generated database credentials and does not read development credentials.
 The first run may pull the image. Set `JAVA_HOME` to your JDK 21 installation if needed.
 
