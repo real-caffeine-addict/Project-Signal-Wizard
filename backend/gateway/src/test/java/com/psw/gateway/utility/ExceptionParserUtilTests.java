@@ -11,8 +11,22 @@ class ExceptionParserUtilTests {
     private final ExceptionParserUtil parser = new ExceptionParserUtil();
 
     @Test
+    void nullExceptionProducesEmptyChainWithoutFailureFlags() {
+        Map<String, Object> result = parser.exceptionParser(null);
+
+        assertThat(chain(result)).isEmpty();
+        assertThat(result).containsEntry("depth", 0)
+                .containsEntry("truncated", false)
+                .containsEntry("circularReference", false);
+    }
+
+    @Test
     void parsesNormalExceptionWithStackTrace() {
         Exception exception = new IllegalArgumentException("bad input");
+        exception.setStackTrace(new StackTraceElement[]{
+                new StackTraceElement("com.psw.ExampleService", "load", "ExampleService.java", 42),
+                new StackTraceElement("com.psw.ExampleController", "read", "ExampleController.java", 17)
+        });
 
         Map<String, Object> result = parser.exceptionParser(exception);
 
@@ -20,8 +34,14 @@ class ExceptionParserUtilTests {
                 .containsEntry("truncated", false)
                 .containsEntry("circularReference", false);
         assertThat(chain(result).getFirst())
+                .containsEntry("depth", 0)
                 .containsEntry("type", "IllegalArgumentException")
+                .containsEntry("className", "java.lang.IllegalArgumentException")
                 .containsEntry("message", "bad input")
+                .containsEntry("sourceClass", "com.psw.ExampleService")
+                .containsEntry("sourceMethod", "load")
+                .containsEntry("sourceFile", "ExampleService.java")
+                .containsEntry("lineNumber", 42)
                 .containsEntry("stackTraceAvailable", true);
     }
 
@@ -34,7 +54,42 @@ class ExceptionParserUtilTests {
 
         assertThat(chain(result)).extracting(item -> item.get("message"))
                 .containsExactly("outer", "middle", "inner");
-        assertThat(result).containsEntry("depth", 3).containsEntry("truncated", false);
+        assertThat(chain(result)).extracting(item -> item.get("depth"))
+                .containsExactly(0, 1, 2);
+        assertThat(result).containsEntry("depth", 3)
+                .containsEntry("truncated", false)
+                .containsEntry("circularReference", false);
+    }
+
+    @Test
+    void includesErrorCauseInExceptionChain() {
+        Exception exception = new RuntimeException("outer", new AssertionError("assertion failed"));
+
+        Map<String, Object> result = parser.exceptionParser(exception);
+
+        assertThat(chain(result)).extracting(item -> item.get("message"))
+                .containsExactly("outer", "assertion failed");
+        assertThat(chain(result).get(1)).containsEntry("depth", 1)
+                .containsEntry("type", "AssertionError")
+                .containsEntry("className", "java.lang.AssertionError");
+        assertThat(result).containsEntry("depth", 2)
+                .containsEntry("truncated", false)
+                .containsEntry("circularReference", false);
+    }
+
+    @Test
+    void preservesExactlyFourCausesWithoutMarkingChainAsTruncated() {
+        Exception exception = new RuntimeException("outer",
+                new IllegalStateException("second",
+                        new IllegalArgumentException("third", new Exception("inner"))));
+
+        Map<String, Object> result = parser.exceptionParser(exception);
+
+        assertThat(chain(result)).extracting(item -> item.get("message"))
+                .containsExactly("outer", "second", "third", "inner");
+        assertThat(result).containsEntry("depth", 4)
+                .containsEntry("truncated", false)
+                .containsEntry("circularReference", false);
     }
 
     @Test
@@ -47,8 +102,11 @@ class ExceptionParserUtilTests {
 
         Map<String, Object> result = parser.exceptionParser(exception);
 
-        assertThat(chain(result)).hasSize(4);
-        assertThat(result).containsEntry("depth", 4).containsEntry("truncated", true);
+        assertThat(chain(result)).extracting(item -> item.get("message"))
+                .containsExactly("one", "two", "three", "four");
+        assertThat(result).containsEntry("depth", 4)
+                .containsEntry("truncated", true)
+                .containsEntry("circularReference", false);
     }
 
     @Test
@@ -77,6 +135,39 @@ class ExceptionParserUtilTests {
                 .containsEntry("truncated", false);
     }
 
+    @Test
+    void detectsCycleAtDepthLimitWithoutMarkingChainAsTruncated() {
+        CircularException first = new CircularException("first");
+        CircularException second = new CircularException("second");
+        CircularException third = new CircularException("third");
+        CircularException fourth = new CircularException("fourth");
+        first.cause = second;
+        second.cause = third;
+        third.cause = fourth;
+        fourth.cause = first;
+
+        Map<String, Object> result = parser.exceptionParser(first);
+
+        assertThat(chain(result)).extracting(item -> item.get("message"))
+                .containsExactly("first", "second", "third", "fourth");
+        assertThat(result).containsEntry("depth", 4)
+                .containsEntry("circularReference", true)
+                .containsEntry("truncated", false);
+    }
+
+    @Test
+    void doesNotTreatEqualButDistinctCausesAsCircularReferences() {
+        Exception exception = new EqualException("outer", new EqualException("inner", null));
+
+        Map<String, Object> result = parser.exceptionParser(exception);
+
+        assertThat(chain(result)).extracting(item -> item.get("message"))
+                .containsExactly("outer", "inner");
+        assertThat(result).containsEntry("depth", 2)
+                .containsEntry("circularReference", false)
+                .containsEntry("truncated", false);
+    }
+
     @SuppressWarnings("unchecked")
     private List<Map<String, Object>> chain(Map<String, Object> result) {
         return (List<Map<String, Object>>) result.get("chain");
@@ -92,6 +183,22 @@ class ExceptionParserUtilTests {
         @Override
         public synchronized Throwable getCause() {
             return cause;
+        }
+    }
+
+    private static final class EqualException extends Exception {
+        private EqualException(String message, Throwable cause) {
+            super(message, cause);
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            return other instanceof EqualException;
+        }
+
+        @Override
+        public int hashCode() {
+            return 1;
         }
     }
 }
