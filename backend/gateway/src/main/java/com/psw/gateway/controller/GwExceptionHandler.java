@@ -9,6 +9,7 @@ import com.psw.gateway.utility.ExceptionParserUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -18,6 +19,13 @@ public class GwExceptionHandler {
     private final ExceptionParserUtil parser;
 
     public GwExceptionHandler (ExceptionParserUtil parser) { this.parser = parser; }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public void unknownRoute(NoResourceFoundException e, HttpServletRequest request) {
+        RequestContext ctx = (RequestContext) request.getAttribute("context");
+        ctx.setStatus(404);
+        ctx.setResponseBody("Not found");
+    }
 
     @ExceptionHandler(MissingRequestContextException.class)
     public void missingRequestContextException (MissingRequestContextException e,

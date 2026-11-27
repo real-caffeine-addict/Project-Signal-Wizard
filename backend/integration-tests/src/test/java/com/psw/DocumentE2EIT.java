@@ -26,7 +26,7 @@ import java.util.regex.Pattern;
 import static org.junit.jupiter.api.Assertions.*;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class DocumentE2ETest {
+public class DocumentE2EIT {
 
     private static final String BASE_URL = "http://127.0.0.1:18000";
 
@@ -58,7 +58,7 @@ public class DocumentE2ETest {
     private TestDbDetails testDbDetails;
     private Path gatewayLog;
 
-    public DocumentE2ETest() throws URISyntaxException {
+    public DocumentE2EIT() throws URISyntaxException {
     }
 
     private record TestDbDetails(
@@ -131,7 +131,8 @@ public class DocumentE2ETest {
                 "audit-service"
         );
 
-        builder.inheritIO();
+        builder.redirectErrorStream(true);
+        builder.redirectOutput(Files.createTempFile("psw-e2e-audit-", ".log").toFile());
 
         audit = builder.start();
     }
@@ -141,7 +142,8 @@ public class DocumentE2ETest {
                 "documents-service"
         );
 
-        builder.inheritIO();
+        builder.redirectErrorStream(true);
+        builder.redirectOutput(Files.createTempFile("psw-e2e-documents-", ".log").toFile());
 
         documents = builder.start();
     }
@@ -167,7 +169,7 @@ public class DocumentE2ETest {
                 "..",
                 serviceName,
                 "target",
-                serviceName + "-0.0.1-SNAPSHOT.jar"
+                serviceName + "-0.0.1-SNAPSHOT-exec.jar"
         ).toAbsolutePath().normalize();
 
         if (!Files.isRegularFile(jar)) {

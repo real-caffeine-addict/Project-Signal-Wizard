@@ -1,6 +1,7 @@
 package com.psw.gateway;
 
 import com.psw.gateway.filter.ContextInitFilter;
+import com.psw.gateway.controller.GwExceptionHandler;
 import com.psw.gateway.model.RequestContext;
 import com.psw.gateway.utility.ContextInitUtil;
 import com.psw.gateway.utility.ExceptionParserUtil;
@@ -11,7 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.mockito.ArgumentCaptor;
 import org.springframework.boot.SpringApplication;
-import org.springframework.boot.SpringBootConfiguration;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.security.autoconfigure.web.servlet.SecurityFilterAutoConfiguration;
 import org.springframework.boot.security.autoconfigure.web.servlet.ServletWebSecurityAutoConfiguration;
@@ -36,7 +37,7 @@ public class UnknownRouteIntegrationTest {
     private ConfigurableApplicationContext gatewayContext;
     private int gatewayPort;
 
-    @SpringBootConfiguration
+    @TestConfiguration
     @EnableAutoConfiguration(exclude = {
             ServletWebSecurityAutoConfiguration.class,
             SecurityFilterAutoConfiguration.class
@@ -44,7 +45,8 @@ public class UnknownRouteIntegrationTest {
     @Import({
             ContextInitFilter.class,
             ContextInitUtil.class,
-            ExceptionParserUtil.class
+            ExceptionParserUtil.class,
+            GwExceptionHandler.class
     })
     static class GwTestApp {
         @Bean
@@ -57,7 +59,8 @@ public class UnknownRouteIntegrationTest {
     void startGateway() {
         gatewayContext = SpringApplication.run(
                 GwTestApp.class,
-                "--server.port=0"
+                "--server.port=0",
+                "--spring.config.name=isolated-route-test"
         );
         gatewayPort = Objects.requireNonNull(
                 ((WebServerApplicationContext) gatewayContext).getWebServer(),

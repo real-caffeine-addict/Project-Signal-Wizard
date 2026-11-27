@@ -16,12 +16,27 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class IncidentHandlerTests {
     private final ExceptionParserUtil parser = new ExceptionParserUtil();
     private final IncidentClient client = mock(IncidentClient.class);
     private final IncidentHandler handler = new IncidentHandler(parser, client);
+
+    @Test
+    void qualifyingDescriptionWithoutDebuggingDataUsesCurrentCriticalFallback() {
+        AlertRecord alert = alert("Authentication error", null);
+
+        AlertRecord result = handler.createIncidentIfRequired(alert);
+
+        assertThat(result.requestId()).isEqualTo(alert.requestId());
+        assertThat(result.severity()).isEqualTo(AlertSeverity.CRITICAL);
+        assertThat(result.incidentId()).isNull();
+        assertThat(result.description()).contains("Failed to log incident");
+        assertThat(result.debuggingData()).containsEntry("depth", 1);
+        verifyNoInteractions(client);
+    }
 
     @Test
     void ignoresAlertThatDoesNotQualify() {

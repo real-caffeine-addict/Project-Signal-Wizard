@@ -129,6 +129,15 @@ The starting architecture uses a small microservice-based backend with clear dom
 
 ---
 
+## Development and Validation
+
+- [Backend tests](backend/README.md) — JDK 21/Maven tests, Testcontainers integration suites,
+  and optional JaCoCo reports.
+- [Frontend](frontend/README.md) — development setup, UI/API tests, lint and build.
+
+The tests cover implemented behavior; later Phase 1 workflows remain WIP. The stale
+consultant portal is excluded from the current test-coverage work.
+
 ## Key Documentation
 
 Important project documents include:

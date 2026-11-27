@@ -7,6 +7,9 @@ import com.psw.incidents.controller.IncidentController;
 import com.psw.incidents.repository.IncidentsRepository;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterAll;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.mariadb.MariaDBContainer;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,35 +30,30 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-class IncidentPersistenceIntegrationTests {
-    private static final String URL = System.getProperty(
-            "psw.test.db.url", "jdbc:mariadb://127.0.0.1:13306/psw_incidents_test");
-    private static final String USER = System.getProperty("psw.test.db.user", "psw_test");
-    private static final String PASSWORD = System.getProperty("psw.test.db.password");
-
+@Testcontainers
+class IncidentPersistenceIT {
+    @Container
+    private static final MariaDBContainer database = new MariaDBContainer("mariadb:11.4");
     private static Flyway flyway;
     private static JdbcTemplate jdbc;
     private IncidentsRepository repository;
 
     @BeforeAll
     static void migrateIsolatedSchema() {
-        assertThat(PASSWORD)
-                .as("psw.test.db.password must be supplied for the isolated test database")
-                .isNotBlank();
         flyway = Flyway.configure()
-                .dataSource(URL, USER, PASSWORD)
+                .dataSource(database.getJdbcUrl(), database.getUsername(), database.getPassword())
                 .locations("classpath:db/migration")
                 .cleanDisabled(false)
                 .load();
         flyway.clean();
         flyway.migrate();
-        DriverManagerDataSource dataSource = new DriverManagerDataSource(URL, USER, PASSWORD);
+        DriverManagerDataSource dataSource = new DriverManagerDataSource(database.getJdbcUrl(), database.getUsername(), database.getPassword());
         jdbc = new JdbcTemplate(dataSource);
     }
 
     @AfterAll
     static void cleanIsolatedSchema() {
-        if (flyway != null && !Boolean.getBoolean("psw.test.db.retain")) {
+        if (flyway != null) {
             flyway.clean();
         }
     }
@@ -63,7 +61,7 @@ class IncidentPersistenceIntegrationTests {
     @BeforeEach
     void createRepositoryAndClearRows() {
         jdbc.update("DELETE FROM incidents");
-        DriverManagerDataSource dataSource = new DriverManagerDataSource(URL, USER, PASSWORD);
+        DriverManagerDataSource dataSource = new DriverManagerDataSource(database.getJdbcUrl(), database.getUsername(), database.getPassword());
         repository = new IncidentsRepository(new NamedParameterJdbcTemplate(dataSource));
         ReflectionTestUtils.setField(repository, "insertInc",
                 new ClassPathResource("db/sql/insertIncident.sql"));

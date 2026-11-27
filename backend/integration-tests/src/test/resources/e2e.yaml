@@ -24,6 +24,8 @@ spring:
     enabled: true
 
   cloud:
+    compatibility-verifier:
+      enabled: false
     openfeign:
       okhttp:
         enabled: true

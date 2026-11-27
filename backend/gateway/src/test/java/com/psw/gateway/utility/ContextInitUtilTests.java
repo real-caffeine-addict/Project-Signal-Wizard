@@ -5,12 +5,44 @@ import com.psw.gateway.model.RequestContext;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ContextInitUtilTests {
     private final ContextInitUtil util = new ContextInitUtil();
+
+    @Test
+    void redactsAllProxyAndSetCookieValuesWithoutCopyingThemToOtherHeaders() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("pRoXy-AuThOrIzAtIoN", "first secret");
+        request.addHeader("pRoXy-AuThOrIzAtIoN", "second secret");
+        request.addHeader("sEt-CoOkIe", "session=secret");
+        RequestContext context = RequestContext.builder().build();
+
+        util.headerResolver(request, context);
+
+        assertThat(context.getImportantHeaders()).containsEntry("pRoXy-AuThOrIzAtIoN", List.of("[redacted]"))
+                .containsEntry("sEt-CoOkIe", List.of("[redacted]"));
+        assertThat(context.getOtherHeaders()).isEmpty();
+    }
+
+    @Test
+    void absentHeaderEnumerationProducesEmptyHeaderMaps() {
+        MockHttpServletRequest request = new MockHttpServletRequest() {
+            @Override
+            public java.util.Enumeration<String> getHeaderNames() {
+                return null;
+            }
+        };
+        RequestContext context = RequestContext.builder().build();
+
+        util.headerResolver(request, context);
+
+        assertThat(context.getImportantHeaders()).isEmpty();
+        assertThat(context.getOtherHeaders()).isEmpty();
+    }
 
     @Test
     void classifiesHeadersAndRedactsSensitiveValuesCaseInsensitively() {
