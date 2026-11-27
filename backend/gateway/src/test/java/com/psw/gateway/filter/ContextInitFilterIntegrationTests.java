@@ -37,6 +37,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doThrow;
 
 class ContextInitFilterIntegrationTests {
     private final IncidentHandler incidentHandler = mock(IncidentHandler.class);
@@ -45,6 +46,26 @@ class ContextInitFilterIntegrationTests {
             new ContextInitUtil(), gwLogger, new ExceptionParserUtil());
     private final ListAppender<ILoggingEvent> requestLogs = new ListAppender<>();
     private final ListAppender<ILoggingEvent> alertLogs = new ListAppender<>();
+
+    @Test
+    void contextInitializationFailureStillProducesErrorResponseAndOneRequestLog() throws Exception {
+        ContextInitUtil failing = mock(ContextInitUtil.class);
+        doThrow(new IllegalStateException("cannot resolve headers")).when(failing).headerResolver(any(), any());
+        ContextInitFilter failingFilter = new ContextInitFilter(failing, gwLogger, new ExceptionParserUtil());
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/app/documents/41");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        failingFilter.doFilter(request, response, (req, res) -> {
+            throw new AssertionError("Downstream processing must not run after initialization fails");
+        });
+
+        assertThat(response.getStatus()).isEqualTo(500);
+        assertThat(response.getContentAsString()).isEqualTo("Internal server error");
+        assertThat(requestLogs.list).hasSize(1);
+        assertThat(alertLogs.list).hasSize(1);
+        assertThat(structuredArgument(alertLogs.list.getFirst()))
+                .contains(((RequestContext) request.getAttribute("context")).getRequestId().toString());
+    }
 
     @Test
     void explicitContextStatusWinsAndPersistedIncidentIdIsReturnedInHeader() throws Exception {
@@ -62,7 +83,7 @@ class ContextInitFilterIntegrationTests {
             context.setResponseBody("temporarily unavailable");
             ((HttpServletResponse) res).setStatus(202);
             context.getAlerts().add(new AlertRecord(UUID.randomUUID(), context.getRequestId(), null,
-                    Instant.now(), AlertSeverity.MAJOR, "test", "Downstream service is unavailable", Map.of()));
+                    Instant.now(), AlertSeverity.MAJOR, Services.LOGGER, "Downstream service is unavailable", Map.of()));
         });
 
         assertThat(response.getStatus()).isEqualTo(503);

@@ -36,7 +36,7 @@ class GwLoggerTests {
     void syntheticIncidentFailureStillLogsOriginalAlertsAndReturnsFirstAvailableId() {
         AlertRecord first = alert(AlertSeverity.MAJOR, "first");
         AlertRecord second = new AlertRecord(UUID.randomUUID(), first.requestId(), null,
-                Instant.now(), AlertSeverity.CRITICAL, "test", "second", null);
+                Instant.now(), AlertSeverity.CRITICAL, Services.LOGGER, "second", null);
         AlertRecord firstPersisted = new AlertRecord(first.logId(), first.requestId(), 91L,
                 first.timestamp(), first.severity(), first.sourceComponent(), first.description(), null);
         AlertRecord secondPersisted = new AlertRecord(second.logId(), second.requestId(), 92L,

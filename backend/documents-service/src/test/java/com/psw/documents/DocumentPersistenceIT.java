@@ -10,6 +10,9 @@ import com.psw.documents.repository.DocumentsRepository;
 import com.psw.documents.service.DocumentService;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.*;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.mariadb.MariaDBContainer;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -28,7 +31,10 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-class DocumentPersistenceIntegrationTests {
+@Testcontainers
+class DocumentPersistenceIT {
+    @Container
+    private static final MariaDBContainer database = new MariaDBContainer("mariadb:11.4");
     private static AnnotationConfigApplicationContext context;
     private static Flyway flyway;
     private static JdbcTemplate jdbc;
@@ -39,10 +45,8 @@ class DocumentPersistenceIntegrationTests {
 
     @BeforeAll
     static void migrateIsolatedSchemaAndCreateTransactionalService() {
-        String password = System.getProperty("psw.test.db.password");
-        assertThat(password).as("Supply an isolated database with backend/test.py").isNotBlank();
         DataSource dataSource = new DriverManagerDataSource(
-                System.getProperty("psw.test.db.url"), System.getProperty("psw.test.db.user", "psw_test"), password);
+                database.getJdbcUrl(), database.getUsername(), database.getPassword());
         flyway = Flyway.configure().dataSource(dataSource).cleanDisabled(false).load();
         flyway.clean();
         flyway.migrate();

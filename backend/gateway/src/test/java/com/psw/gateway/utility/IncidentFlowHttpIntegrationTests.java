@@ -6,6 +6,7 @@ import ch.qos.logback.core.read.ListAppender;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.psw.common.dto.IncidentDto;
 import com.psw.common.enums.AlertSeverity;
+import com.psw.common.enums.Services;
 import com.psw.gateway.GatewayApplication;
 import com.psw.gateway.model.AlertRecord;
 import com.psw.gateway.model.RequestContext;
@@ -31,7 +32,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(classes = GatewayApplication.class, properties = {
         "spring.config.name=incident-http-test",
-        "server.port=0", "spring.cloud.compatibility-verifier.enabled=false"
+        "server.port=0", "spring.cloud.compatibility-verifier.enabled=false",
+        "routes.documents=http://127.0.0.1:9"
 })
 class IncidentFlowHttpIntegrationTests {
     private static HttpServer server;
@@ -100,7 +102,7 @@ class IncidentFlowHttpIntegrationTests {
         assertThat(contentType.get()).startsWith("application/json");
         assertThat(mapper.readValue(body.get(), IncidentDto.class)).isEqualTo(new IncidentDto(
                 alert.logId().toString(), alert.requestId().toString(), alert.timestamp(), "MAJOR",
-                "gateway", alert.description(), alert.debuggingData().toString()));
+                Services.GATEWAY.name(), alert.description(), alert.debuggingData().toString()));
         assertThat(requestLogs.list).hasSize(1);
         assertThat(alertLogs.list).hasSize(1);
         assertThat(argument(alertLogs.list.getFirst()))
@@ -151,7 +153,7 @@ class IncidentFlowHttpIntegrationTests {
     private AlertRecord alert() {
         return new AlertRecord(UUID.randomUUID(), UUID.randomUUID(), null,
                 Instant.parse("2026-07-01T12:30:00Z"), AlertSeverity.MAJOR,
-                "gateway", "Downstream service is unavailable", Map.of("diagnostic", "שרטוט\nsecond line"));
+                Services.GATEWAY, "Downstream service is unavailable", Map.of("diagnostic", "שרטוט\nsecond line"));
     }
 
     private RequestContext context(AlertRecord alert) {

@@ -131,7 +131,7 @@ The starting architecture uses a small microservice-based backend with clear dom
 
 ## Development and Validation
 
-- [Backend tests](backend/README.md) — JDK 21/Maven tests, isolated MariaDB runner,
+- [Backend tests](backend/README.md) — JDK 21/Maven tests, Testcontainers integration suites,
   and optional JaCoCo reports.
 - [Frontend](frontend/README.md) — development setup, UI/API tests, lint and build.
 

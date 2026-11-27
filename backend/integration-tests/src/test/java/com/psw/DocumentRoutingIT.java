@@ -56,11 +56,12 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @SpringBootTest(
-        classes = DocumentRoutingIntegrationTest.DocumentTestApp.class,
-        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT
+        classes = DocumentRoutingIT.DocumentTestApp.class,
+        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+        properties = "spring.config.name=isolated-routing-test"
 )
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class DocumentRoutingIntegrationTest {
+public class DocumentRoutingIT {
     private ConfigurableApplicationContext gatewayContext;
     private int gatewayPort;
 
@@ -69,6 +70,7 @@ public class DocumentRoutingIntegrationTest {
         gatewayContext = SpringApplication.run(
                 GwTestApp.class,
                 "--server.port=0",
+                "--spring.config.name=isolated-routing-test",
                 "--routes.documents=http://localhost:" + documentsPort
         );
         gatewayPort = Objects.requireNonNull(

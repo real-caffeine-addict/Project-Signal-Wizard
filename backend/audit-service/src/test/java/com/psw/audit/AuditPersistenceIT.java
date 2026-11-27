@@ -9,6 +9,9 @@ import com.psw.common.enums.AuditableAction;
 import com.psw.common.enums.TargetType;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.*;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.mariadb.MariaDBContainer;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -21,7 +24,10 @@ import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.*;
 
-class AuditPersistenceIntegrationTests {
+@Testcontainers
+class AuditPersistenceIT {
+    @Container
+    private static final MariaDBContainer database = new MariaDBContainer("mariadb:11.4");
     private static Flyway flyway;
     private static JdbcTemplate jdbc;
     private static AuditRepository repository;
@@ -29,10 +35,8 @@ class AuditPersistenceIntegrationTests {
 
     @BeforeAll
     static void migrateIsolatedSchema() {
-        String password = System.getProperty("psw.test.db.password");
-        assertThat(password).as("Supply an isolated database with backend/test.py").isNotBlank();
-        var dataSource = new DriverManagerDataSource(System.getProperty("psw.test.db.url"),
-                System.getProperty("psw.test.db.user", "psw_test"), password);
+        var dataSource = new DriverManagerDataSource(
+                database.getJdbcUrl(), database.getUsername(), database.getPassword());
         flyway = Flyway.configure().dataSource(dataSource).cleanDisabled(false).load();
         flyway.clean();
         flyway.migrate();

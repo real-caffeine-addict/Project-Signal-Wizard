@@ -1,38 +1,47 @@
 # Backend tests
 
-Use JDK 21, Maven, Python 3 and a running Docker daemon:
+Use Maven and JDK 21; JDK 25 can also compile the Java 21 target. Docker is required
+for integration tests. Test dependencies use Testcontainers 2.0.5, matching the
+merged Phase 1 integration module.
 
 ```bash
 cd backend
-python3 test.py
+mvn test
+mvn clean verify
+mvn clean verify -Pcoverage
 ```
 
-The runner creates a disposable MariaDB 11.4 container (matching dev Compose),
-binds an available loopback port, supplies temporary test configuration and runs
-a clean Maven reactor build. It stops the container on exit; database files live in tmpfs.
-It uses generated database credentials and does not read development credentials.
-The first run may pull the image. Set `JAVA_HOME` to your JDK 21 installation if needed.
+`test` runs fast unit, MockMvc and isolated HTTP tests with Surefire. It does not
+start database containers. `verify` also runs `*IT` classes through Failsafe, after
+`package` has built the service JARs. JaCoCo HTML/XML reports are generated under
+each module's `target/site/jacoco` when the coverage profile is enabled.
 
-Select modules or test classes using Maven arguments:
+Database tests use JUnit-managed Testcontainers MariaDB 11.4 instances. Each suite
+gets its own disposable database, so Flyway cleanup cannot affect another suite or
+the development database. Spring smoke tests receive container connection details
+through `DynamicPropertySource`; no local secrets or configuration files are needed.
+The first integration run may pull container images. Docker unavailability is a
+failure, rather than a silent skip.
+
+The existing `integration-tests` module retains the document routing tests and the
+separate-process document/revision/audit E2E tests. Plain service JARs remain usable
+as Java dependencies; executable service JARs have an `-exec.jar` suffix. E2E tests
+start those executables only after Maven has packaged them. The current E2E fixture
+uses loopback ports 18000, 18003 and 18004; those ports must be available.
+
+Select a database suite (include upstream modules with `-am`):
 
 ```bash
-python3 test.py -pl documents-service -am -Dtest=DocumentPersistenceIntegrationTests -Dsurefire.failIfNoSpecifiedTests=false
-python3 test.py --image mariadb:11.8
-python3 test.py --coverage
+mvn verify -pl documents-service -am -Dit.test=DocumentPersistenceIT -Dfailsafe.failIfNoSpecifiedTests=false
 ```
 
-The persistence/schema tests clean their configured schema. Run them through this
-runner; any manually supplied `psw.test.db.*` properties must reference a disposable
-database. Module application smoke tests also run against the isolated database.
-`--coverage` produces per-module JaCoCo HTML/XML reports under `target/site/jacoco`;
-generated code coverage is not a target for additional tests.
+Gateway HTTP-stub tests complement the real document E2E flow by covering incident
+transport failures without requiring an incident deployment. The older three-case
+`IncidentFlowEndToEndTests` class is preserved with its upstream `@Disabled` marker;
+it still requires a separately configured incident service/database and is not
+counted as verified coverage.
 
-Service/controller tests use JUnit 5, AssertJ, Mockito and MockMvc. Database tests
-exercise real migrations, constraints, mapping and transaction rollback. Gateway
-HTTP tests use the real Feign client and a local stub endpoint; incident persistence
-is tested separately. They do not establish a deployed multi-service end-to-end flow.
-The test configuration disables Spring Cloud's compatibility verifier, following the
-existing gateway test setup; runtime version compatibility is not certified by these tests.
-
-Tests characterize implemented behavior. Authentication, gateway routing and later
-document workflows remain WIP. No tests are added to the stale consultant portal.
+Test-only configuration disables Spring Cloud's compatibility verifier, as the
+existing gateway setup did. These results do not certify runtime version compatibility.
+Generated model accessors are not targets for extra tests. The stale consultant
+portal is excluded from this work.

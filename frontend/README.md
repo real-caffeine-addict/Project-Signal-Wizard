@@ -2,7 +2,8 @@
 
 React/Vite forms for creating and reading documents and reading audit events.
 The current development UI calls the document service on port 8083 and the audit
-service on port 8084 directly. Gateway routing and authentication remain WIP.
+service on port 8084 directly. The backend also provides document gateway routes;
+this UI has not been migrated to them. Authentication remains WIP.
 
 Use Node.js 24 (24.15 or later) and npm:
 
