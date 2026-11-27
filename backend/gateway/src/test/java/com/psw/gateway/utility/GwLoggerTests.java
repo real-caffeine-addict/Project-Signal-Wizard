@@ -5,6 +5,7 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import com.psw.common.enums.AlertSeverity;
+import com.psw.common.enums.Services;
 import com.psw.gateway.model.AlertRecord;
 import com.psw.gateway.model.RequestContext;
 import org.junit.jupiter.api.AfterEach;
@@ -98,7 +99,7 @@ class GwLoggerTests {
     void persistenceFailureAlertIsLoggedOnceAndDoesNotExposeIncidentId() {
         AlertRecord alert = alert(AlertSeverity.MAJOR, "major");
         AlertRecord fallback = new AlertRecord(UUID.randomUUID(), alert.requestId(), null,
-                Instant.now(), AlertSeverity.CRITICAL, "Incident service",
+                Instant.now(), AlertSeverity.CRITICAL, Services.INCIDENTS,
                 "Failed to log incident", Map.of("message", "offline"));
         when(incidentHandler.createIncidentIfRequired(alert)).thenReturn(fallback);
 
@@ -111,7 +112,7 @@ class GwLoggerTests {
         AlertRecord first = alert(AlertSeverity.MAJOR, "first");
         AlertRecord second = alert(AlertSeverity.CRITICAL, "second");
         AlertRecord synthetic = new AlertRecord(UUID.randomUUID(), first.requestId(), 7L,
-                Instant.now(), AlertSeverity.CRITICAL, "GwLogger",
+                Instant.now(), AlertSeverity.CRITICAL, Services.LOGGER,
                 "Request had more than one MAJOR or CRITICAL alert", null);
         when(incidentHandler.createIncidentIfRequired(org.mockito.ArgumentMatchers.argThat(
                 item -> item.description().equals("Request had more than one MAJOR or CRITICAL alert"))))
@@ -131,7 +132,7 @@ class GwLoggerTests {
         UUID requestId = UUID.randomUUID();
         AlertRecord alert = new AlertRecord(
                 UUID.randomUUID(), requestId, null, Instant.now(), AlertSeverity.INFO,
-                "gateway", "תקלה – failure", Map.of("diagnostic", "שורה ראשונה\nsecond line ☃"));
+                Services.GATEWAY, "תקלה – failure", Map.of("diagnostic", "שורה ראשונה\nsecond line ☃"));
 
         logger.logRequest(context(List.of(alert)));
 
@@ -145,11 +146,11 @@ class GwLoggerTests {
     void severalQualifyingAlertsAreEachProcessedExactlyOnce() {
         AlertRecord first = alert(AlertSeverity.MAJOR, "first");
         AlertRecord second = new AlertRecord(UUID.randomUUID(), first.requestId(), null,
-                Instant.now(), AlertSeverity.MAJOR, "test", "second", null);
+                Instant.now(), AlertSeverity.MAJOR, Services.LOGGER, "second", null);
         AlertRecord third = new AlertRecord(UUID.randomUUID(), first.requestId(), null,
-                Instant.now(), AlertSeverity.CRITICAL, "test", "third", null);
+                Instant.now(), AlertSeverity.CRITICAL, Services.LOGGER, "third", null);
         AlertRecord synthetic = new AlertRecord(UUID.randomUUID(), first.requestId(), null,
-                Instant.now(), AlertSeverity.CRITICAL, "GwLogger",
+                Instant.now(), AlertSeverity.CRITICAL, Services.LOGGER,
                 "Request had more than one MAJOR or CRITICAL alert", null);
         when(incidentHandler.createIncidentIfRequired(org.mockito.ArgumentMatchers.argThat(
                 item -> item.description().equals("Request had more than one MAJOR or CRITICAL alert"))))
@@ -174,6 +175,6 @@ class GwLoggerTests {
 
     private AlertRecord alert(AlertSeverity severity, String description) {
         return new AlertRecord(UUID.randomUUID(), UUID.randomUUID(), null, Instant.now(),
-                severity, "test", description, null);
+                severity, Services.LOGGER, description, null);
     }
 }

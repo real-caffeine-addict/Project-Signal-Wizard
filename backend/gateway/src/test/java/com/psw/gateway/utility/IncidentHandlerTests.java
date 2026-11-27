@@ -2,6 +2,7 @@ package com.psw.gateway.utility;
 
 import com.psw.common.dto.IncidentDto;
 import com.psw.common.enums.AlertSeverity;
+import com.psw.common.enums.Services;
 import com.psw.gateway.client.IncidentClient;
 import com.psw.gateway.model.AlertRecord;
 import org.junit.jupiter.api.Test;
@@ -42,7 +43,7 @@ class IncidentHandlerTests {
         assertThat(result.requestId()).isEqualTo(alert.requestId());
         verify(client).logIncident(new IncidentDto(
                 alert.logId().toString(), alert.requestId().toString(), alert.timestamp(),
-                alert.severity().name(), alert.sourceComponent(), alert.description(),
+                alert.severity().name(), alert.sourceComponent().name(), alert.description(),
                 alert.debuggingData().toString()));
     }
 
@@ -75,6 +76,6 @@ class IncidentHandlerTests {
 
     private AlertRecord alert(String description, Map<String, Object> debuggingData) {
         return new AlertRecord(UUID.randomUUID(), UUID.randomUUID(), null, Instant.now(),
-                AlertSeverity.MAJOR, "test", description, debuggingData);
+                AlertSeverity.MAJOR, Services.GATEWAY, description, debuggingData);
     }
 }

@@ -1,5 +1,6 @@
 package com.psw.gateway.utility;
 
+import com.psw.common.enums.Services;
 import com.psw.gateway.model.AlertRecord;
 import com.psw.gateway.model.RequestContext;
 import com.psw.common.enums.AlertSeverity;
@@ -36,7 +37,7 @@ public class ContextInitUtil {
                         null,
                         Instant.now(),
                         AlertSeverity.MINOR,
-                        "ContextInitFilter",
+                        Services.GATEWAY,
                         "Remote peer address is unavailable",
                         null
                 ));

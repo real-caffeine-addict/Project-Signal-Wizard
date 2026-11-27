@@ -4,6 +4,7 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import com.psw.common.enums.AlertSeverity;
+import com.psw.common.enums.Services;
 import com.psw.gateway.GatewayApplication;
 import com.psw.gateway.model.AlertRecord;
 import com.psw.gateway.model.RequestContext;
@@ -108,7 +109,7 @@ class IncidentFlowEndToEndTests {
     private AlertRecord qualifyingAlert(UUID requestId) {
         return new AlertRecord(
                 UUID.randomUUID(), requestId, null, Instant.now(), AlertSeverity.MAJOR,
-                "Gateway E2E", "Downstream service is unavailable",
+                Services.GATEWAY, "Downstream service is unavailable",
                 Map.of("downstream", "projects"));
     }
 

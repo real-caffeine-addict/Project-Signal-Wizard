@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.*;
 
 @FeignClient(name = "audit-service", url = "${routes.audit}")
 public interface AuditServiceClient {
-    @PostMapping("/insert-event")
+    @PostMapping("/audit-events")
     String createAuditEvent(@RequestHeader ("X-Origin-Service") String originService,
                             @RequestBody CreateAuditEventRequest data);
 

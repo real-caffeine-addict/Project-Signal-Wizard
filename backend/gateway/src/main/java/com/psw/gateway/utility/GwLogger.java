@@ -1,5 +1,6 @@
 package com.psw.gateway.utility;
 
+import com.psw.common.enums.Services;
 import com.psw.gateway.model.AlertRecord;
 import com.psw.gateway.model.RequestContext;
 import com.psw.common.enums.AlertSeverity;
@@ -55,7 +56,7 @@ public class GwLogger {
                 null,
                 Instant.now(),
                 AlertSeverity.CRITICAL,
-                "ContextInitFilter",
+                Services.GATEWAY,
                 "Response ownership violation detected",
                 Map.of("ownershipState", "committed outside gateway")
         );
@@ -122,7 +123,7 @@ public class GwLogger {
                     null,
                     Instant.now(),
                     AlertSeverity.CRITICAL,
-                    "GwLogger",
+                    Services.LOGGER,
                     "Request had more than one MAJOR or CRITICAL alert",
                     null
             ));
@@ -133,7 +134,7 @@ public class GwLogger {
                     null,
                     Instant.now(),
                     AlertSeverity.CRITICAL,
-                    "GwLogger",
+                    Services.LOGGER,
                     "Failed to log incident",
                     exceptionParser.exceptionParser(e)
             );

@@ -1,0 +1,29 @@
+# End-to-end test configuration
+env: e2e
+
+routes:
+  documents: http://127.0.0.1:18003
+  audit: http://127.0.0.1:18004
+  incident: http://127.0.0.1:18009
+
+server:
+  gateway:
+    port: 18000
+  documents:
+    port: 18003
+  audit:
+    port: 18004
+
+spring:
+  datasource:
+    url: ${PSW_E2E_DB_URL}
+    username: ${PSW_E2E_DB_USER}
+    password: ${PSW_E2E_DB_PASSWORD}
+
+  flyway:
+    enabled: true
+
+  cloud:
+    openfeign:
+      okhttp:
+        enabled: true
