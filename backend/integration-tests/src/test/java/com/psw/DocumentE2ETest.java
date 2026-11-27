@@ -167,7 +167,7 @@ public class DocumentE2ETest {
                 "..",
                 serviceName,
                 "target",
-                serviceName + "-0.0.1-SNAPSHOT.jar"
+                serviceName + "-0.0.1-SNAPSHOT-exec.jar"
         ).toAbsolutePath().normalize();
 
         if (!Files.isRegularFile(jar)) {
